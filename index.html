@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plant Disease Detector</title>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+<style>
+body{font-family:Arial,sans-serif;margin:0;background:#f3f8f1;color:#18321d;text-align:center}
+.card{max-width:760px;margin:40px auto;padding:32px;background:white;border-radius:22px;box-shadow:0 8px 30px #0001}
+h1{margin-bottom:8px}.sub{color:#58705c}
+button{padding:13px 20px;border:0;border-radius:12px;background:#3f7d4a;color:white;font-size:16px;cursor:pointer}
+input{margin:20px 0}
+#preview{max-width:320px;max-height:320px;border-radius:16px;display:none;margin:15px auto}
+#result{font-size:24px;font-weight:bold;margin:18px}
+.bar{height:14px;background:#e4ece4;border-radius:10px;overflow:hidden;margin:8px 0 18px}
+.fill{height:100%;width:0;background:#5d9966;transition:.3s}
+.small{font-size:13px;color:#667}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>🌿 Plant Disease Detector</h1>
+<p class="sub">AI image classification model trained with Google Teachable Machine</p>
+<input id="file" type="file" accept="image/*">
+<img id="preview" alt="Selected leaf">
+<div id="result">Choose a leaf image to begin.</div>
+<div id="scores"></div>
+<p class="small">This school-project model classifies images into the two trained classes: Healthy Leaf and Diseased Leaf.</p>
+</div>
+<script>
+const URL="./model/";
+let model;
+
+async function loadModel(){
+  try{
+    model=await tmImage.load(URL+"model.json",URL+"metadata.json");
+  }catch(e){
+    document.getElementById("result").textContent="Model could not be loaded. Keep the model folder beside this HTML file.";
+    console.error(e);
+  }
+}
+loadModel();
+
+document.getElementById("file").addEventListener("change", async function(){
+  if(!model || !this.files[0]) return;
+  const img=document.getElementById("preview");
+  img.src=URL.createObjectURL(this.files[0]);
+  img.style.display="block";
+  await img.decode();
+  const predictions=await model.predict(img);
+  predictions.sort((a,b)=>b.probability-a.probability);
+  const top=predictions[0];
+  document.getElementById("result").textContent=top.className+" — "+(top.probability*100).toFixed(1)+"%";
+  document.getElementById("scores").innerHTML=predictions.map(p=>`
+    <div><b>${p.className}</b> — ${(p.probability*100).toFixed(1)}%</div>
+    <div class="bar"><div class="fill" style="width:${p.probability*100}%"></div></div>
+  `).join("");
+});
+</script>
+</body>
+</html>
